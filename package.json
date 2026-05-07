@@ -1,19 +1,14 @@
 {
-  "name": "shark-tank-telegram-bot",
+  "name": "shark-tank-bot",
   "version": "1.0.0",
-  "description": "Automação de posts para canal Telegram - Shark Tank Brasil Bastidores",
-  "private": true,
-  "type": "module",
+  "description": "Automação de posts no Telegram para o canal Shark Tank Brasil — Bastidores",
   "scripts": {
-    "build": "echo 'No build step required'",
-    "test:scheduler": "node netlify/functions/lib/scheduler.mjs"
+    "dev": "netlify dev"
   },
   "dependencies": {
-    "@netlify/functions": "^2.6.0",
-    "@supabase/supabase-js": "^2.39.3",
-    "openai": "^4.28.0"
+    "@netlify/functions": "^2.4.0"
   },
-  "engines": {
-    "node": ">=18.0.0"
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
   }
 }
