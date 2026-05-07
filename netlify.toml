@@ -3,3 +3,4 @@
 
 [[plugins]]
   package = "@netlify/plugin-functions-install-deps"
+  package = "@netlify/plugin-functions-install-core"
