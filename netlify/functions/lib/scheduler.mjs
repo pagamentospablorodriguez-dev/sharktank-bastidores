@@ -60,8 +60,8 @@ export function resolvePostCategory(dayIndex, period, weekNumber) {
   return 'valor';
 }
 
-// Self-test when run directly
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+// Self-test: run with `node netlify/functions/lib/scheduler.mjs`
+if (typeof process !== 'undefined' && process.argv?.[1]?.endsWith('scheduler.mjs')) {
   const ctx = getBRTContext();
   const morning = resolvePostCategory(ctx.dayIndex, 'manhã', ctx.weekNumber);
   const evening = resolvePostCategory(ctx.dayIndex, 'noite', ctx.weekNumber);
