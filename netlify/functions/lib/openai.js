@@ -43,14 +43,18 @@ async function generatePost(dayNamePT, period) {
 
 /**
  * Verifica se o conteúdo gerado é uma enquete
- * e faz o parse do JSON interno
+ * e faz o parse do JSON interno.
+ * O [ENQUETE] pode estar em qualquer posição no texto
+ * (ex: depois dos metadados DIA/HORÁRIO/TIPO/TEMA).
  */
 function parseEnquete(content) {
-  if (!content.startsWith('[ENQUETE]')) return null;
+  const marker = '[ENQUETE]';
+  const markerIndex = content.indexOf(marker);
+  if (markerIndex === -1) return null;
 
   try {
-    // Remove o marcador [ENQUETE] e extrai o JSON
-    const jsonStr = content.replace('[ENQUETE]', '').trim();
+    // Pega tudo após o marcador [ENQUETE]
+    const jsonStr = content.slice(markerIndex + marker.length).trim();
     const data = JSON.parse(jsonStr);
 
     if (!data.pergunta || !Array.isArray(data.opcoes)) {
