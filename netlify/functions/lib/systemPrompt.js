@@ -67,7 +67,7 @@ Post de venda do produto Shark Method.
 Produto: Shark Method
 Preço: R$197
 Formato: nunca mencionar. Acesso imediato.
-Termina sempre com: 👉 [LINK_SHARK_METHOD]
+Termina sempre com: 👉 https://sharkmethod.alaobra.co
 
 ---
 
@@ -133,7 +133,7 @@ OBJEÇÕES E RESPOSTAS:
 TIPO 7 — LANÇAMENTO RELÂMPAGO
 (sexta noite a cada 3 semanas)
 Post de urgência máxima. Shark Method disponível apenas 48 horas. Depois fecha ou sobe de preço.
-Termina com: 👉 [LINK_SHARK_METHOD]
+Termina com: 👉 https://sharkmethod.alaobra.co
 
 ---
 
