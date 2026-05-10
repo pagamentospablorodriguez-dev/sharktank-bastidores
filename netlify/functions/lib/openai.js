@@ -4,12 +4,22 @@ const { SYSTEM_PROMPT } = require('./systemPrompt');
 
 /**
  * Gera o conteúdo do post chamando a API do GPT-4o mini.
+ *
  * @param {string} dayNamePT - Dia da semana em português
  * @param {string} period - "manhã" ou "noite"
  * @param {string[]} recentCompanies - Empresas usadas nos últimos 7 dias
- * @param {string[]} recentThemes - Temas/assuntos usados nos últimos 7 dias
+ * @param {string[]} recentThemes - Temas usados nos últimos 7 dias
+ * @param {string|null} mandatoryTopic - Tema obrigatório calculado pelo código (ou null)
+ * @param {string|null} mandatoryInstruction - Instrução adicional (para venda/lançamento)
  */
-async function generatePost(dayNamePT, period, recentCompanies = [], recentThemes = []) {
+async function generatePost(
+  dayNamePT,
+  period,
+  recentCompanies = [],
+  recentThemes = [],
+  mandatoryTopic = null,
+  mandatoryInstruction = null
+) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY não configurada');
 
@@ -21,7 +31,20 @@ async function generatePost(dayNamePT, period, recentCompanies = [], recentTheme
     ? recentThemes.join(', ')
     : 'nenhum ainda';
 
-  const userMessage = `GERAR POST - ${dayNamePT} - ${period} - EMPRESAS JÁ USADAS ESSA SEMANA: ${companiesList} - TEMAS JÁ USADOS ESSA SEMANA: ${themesList}`;
+  // Monta o comando base
+  let userMessage = `GERAR POST - ${dayNamePT} - ${period}`;
+  userMessage += ` - EMPRESAS JÁ USADAS ESSA SEMANA: ${companiesList}`;
+  userMessage += ` - TEMAS JÁ USADOS ESSA SEMANA: ${themesList}`;
+
+  // Injeta tema obrigatório quando o código determina
+  if (mandatoryTopic) {
+    userMessage += ` - TEMA OBRIGATÓRIO PARA ESSE POST: ${mandatoryTopic}`;
+  }
+
+  // Injeta instrução adicional (técnica de venda, etc.)
+  if (mandatoryInstruction) {
+    userMessage += ` - INSTRUÇÃO OBRIGATÓRIA: ${mandatoryInstruction}`;
+  }
 
   console.log(`[SHARK-BOT] Comando enviado ao GPT: "${userMessage}"`);
 
