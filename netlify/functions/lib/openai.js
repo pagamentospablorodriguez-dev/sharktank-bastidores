@@ -3,13 +3,23 @@
 const { SYSTEM_PROMPT } = require('./systemPrompt');
 
 /**
- * Gera o conteúdo do post chamando a API do GPT-4o mini
+ * Gera o conteúdo do post chamando a API do GPT-4o mini.
+ * @param {string} dayNamePT - Dia da semana em português
+ * @param {string} period - "manhã" ou "noite"
+ * @param {string[]} recentCompanies - Empresas usadas nos últimos 7 dias
  */
-async function generatePost(dayNamePT, period) {
+async function generatePost(dayNamePT, period, recentCompanies = []) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY não configurada');
 
-  const userMessage = `GERAR POST - ${dayNamePT} - ${period}`;
+  // Monta o comando com ou sem lista de empresas
+  const companiesList = recentCompanies.length > 0
+    ? recentCompanies.join(', ')
+    : 'nenhuma ainda';
+
+  const userMessage = `GERAR POST - ${dayNamePT} - ${period} - EMPRESAS JÁ USADAS ESSA SEMANA: ${companiesList}`;
+
+  console.log(`[SHARK-BOT] Comando enviado ao GPT: "${userMessage}"`);
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -53,7 +63,6 @@ function parseEnquete(content) {
   if (markerIndex === -1) return null;
 
   try {
-    // Pega tudo após o marcador [ENQUETE]
     const jsonStr = content.slice(markerIndex + marker.length).trim();
     const data = JSON.parse(jsonStr);
 
@@ -67,7 +76,6 @@ function parseEnquete(content) {
       opcoes: data.opcoes,
     };
   } catch (e) {
-    // Se falhar o parse, trata como texto normal
     console.warn('[SHARK-BOT] Falha ao parsear enquete, enviando como texto:', e.message);
     return null;
   }
@@ -76,9 +84,10 @@ function parseEnquete(content) {
 /**
  * Extrai metadata da resposta do GPT
  * (DIA, HORÁRIO, TIPO, TEMA)
+ * e tenta identificar a empresa mencionada no post.
  */
 function extractMetadata(content) {
-  const meta = { dia: '', horario: '', tipo: '', tema: '' };
+  const meta = { dia: '', horario: '', tipo: '', tema: '', company: '' };
 
   const diaMatch = content.match(/^DIA:\s*(.+)$/m);
   const horarioMatch = content.match(/^HORÁRIO:\s*(.+)$/m);
@@ -89,6 +98,25 @@ function extractMetadata(content) {
   if (horarioMatch) meta.horario = horarioMatch[1].trim();
   if (tipoMatch) meta.tipo = tipoMatch[1].trim();
   if (temaMatch) meta.tema = temaMatch[1].trim();
+
+  // Detecta empresa mencionada no conteúdo
+  const knownCompanies = [
+    'Ring', 'Squatty Potty', 'Kodiak Cakes', 'Tower Paddle Boards',
+    'Tipsy Elves', 'Cousins Maine Lobster', 'Simply Fit Board',
+    'Scrub Daddy', 'Bombas', 'Baked by Melissa', 'Groovebook',
+    'Bantam Bagels', 'Pipcorn', 'LuminAID', 'Bottle Breacher',
+    'Nerdwax', 'Sand Cloud', 'Brightwheel', 'The Bouqs', 'Barnana',
+    'Hammitt', 'ReadeREST', 'Copa Di Vino', 'Buggy Beds', 'Nuts N More',
+    'Ten Thirty One Productions', 'Wicked Good Cupcakes', 'Talbott Teas',
+  ];
+
+  const contentLower = content.toLowerCase();
+  for (const company of knownCompanies) {
+    if (contentLower.includes(company.toLowerCase())) {
+      meta.company = company;
+      break;
+    }
+  }
 
   // Extrai apenas o texto do post (após os metadados)
   const lines = content.split('\n');
