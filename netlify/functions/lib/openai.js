@@ -7,17 +7,21 @@ const { SYSTEM_PROMPT } = require('./systemPrompt');
  * @param {string} dayNamePT - Dia da semana em português
  * @param {string} period - "manhã" ou "noite"
  * @param {string[]} recentCompanies - Empresas usadas nos últimos 7 dias
+ * @param {string[]} recentThemes - Temas/assuntos usados nos últimos 7 dias
  */
-async function generatePost(dayNamePT, period, recentCompanies = []) {
+async function generatePost(dayNamePT, period, recentCompanies = [], recentThemes = []) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY não configurada');
 
-  // Monta o comando com ou sem lista de empresas
   const companiesList = recentCompanies.length > 0
     ? recentCompanies.join(', ')
     : 'nenhuma ainda';
 
-  const userMessage = `GERAR POST - ${dayNamePT} - ${period} - EMPRESAS JÁ USADAS ESSA SEMANA: ${companiesList}`;
+  const themesList = recentThemes.length > 0
+    ? recentThemes.join(', ')
+    : 'nenhum ainda';
+
+  const userMessage = `GERAR POST - ${dayNamePT} - ${period} - EMPRESAS JÁ USADAS ESSA SEMANA: ${companiesList} - TEMAS JÁ USADOS ESSA SEMANA: ${themesList}`;
 
   console.log(`[SHARK-BOT] Comando enviado ao GPT: "${userMessage}"`);
 
@@ -52,10 +56,8 @@ async function generatePost(dayNamePT, period, recentCompanies = []) {
 }
 
 /**
- * Verifica se o conteúdo gerado é uma enquete
- * e faz o parse do JSON interno.
- * O [ENQUETE] pode estar em qualquer posição no texto
- * (ex: depois dos metadados DIA/HORÁRIO/TIPO/TEMA).
+ * Verifica se o conteúdo gerado é uma enquete e faz o parse do JSON.
+ * O [ENQUETE] pode estar em qualquer posição no texto.
  */
 function parseEnquete(content) {
   const marker = '[ENQUETE]';
@@ -82,9 +84,8 @@ function parseEnquete(content) {
 }
 
 /**
- * Extrai metadata da resposta do GPT
- * (DIA, HORÁRIO, TIPO, TEMA)
- * e tenta identificar a empresa mencionada no post.
+ * Extrai metadata da resposta do GPT (DIA, HORÁRIO, TIPO, TEMA)
+ * e detecta a empresa mencionada no post.
  */
 function extractMetadata(content) {
   const meta = { dia: '', horario: '', tipo: '', tema: '', company: '' };
