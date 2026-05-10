@@ -3,7 +3,7 @@
 const { generatePost, parseEnquete, extractMetadata } = require('./openai');
 const { sendMessage, sendPoll } = require('./telegram');
 const { logPost, logError } = require('./logger');
-const { getRecentCompanies, savePostLog } = require('./supabase');
+const { getRecentContext, savePostLog } = require('./supabase');
 const {
   getBrasiliaDate,
   getDayNamePT,
@@ -25,20 +25,23 @@ async function runPostEngine(overrideDate = null) {
 
   console.log(`[SHARK-BOT] Iniciando post | dia=${dayNamePT} | periodo=${period} | tipo_esperado=${contentType}`);
 
-  // 1. Busca empresas usadas nos últimos 7 dias no Supabase
+  // 1. Busca contexto recente no Supabase (empresas + temas)
   let recentCompanies = [];
+  let recentThemes = [];
   try {
-    recentCompanies = await getRecentCompanies();
+    const ctx = await getRecentContext();
+    recentCompanies = ctx.companies;
+    recentThemes = ctx.themes;
     console.log(`[SHARK-BOT] Empresas recentes (${recentCompanies.length}): ${recentCompanies.join(', ') || 'nenhuma'}`);
+    console.log(`[SHARK-BOT] Temas recentes (${recentThemes.length}): ${recentThemes.join(', ') || 'nenhum'}`);
   } catch (err) {
-    // Não trava o fluxo — gera sem histórico
-    console.warn('[SHARK-BOT] Não foi possível buscar empresas recentes:', err.message);
+    console.warn('[SHARK-BOT] Não foi possível buscar contexto recente:', err.message);
   }
 
-  // 2. Gera conteúdo via GPT-4o mini (com lista de empresas)
+  // 2. Gera conteúdo via GPT-4o mini (com empresas E temas recentes)
   let rawContent;
   try {
-    rawContent = await generatePost(dayNamePT, period, recentCompanies);
+    rawContent = await generatePost(dayNamePT, period, recentCompanies, recentThemes);
   } catch (err) {
     logError('generatePost', err);
     throw err;
@@ -75,7 +78,14 @@ async function runPostEngine(overrideDate = null) {
     }
   }
 
-  const conteudoFinal = enqueteData ? enqueteData.pergunta : (meta.postText || rawContent);
+  const conteudoFinal = enqueteData
+    ? enqueteData.pergunta
+    : (meta.postText || rawContent);
+
+  // O tema salvo é: para enquete, a pergunta; para post normal, o TEMA do metadado
+  const themeSaved = enqueteData
+    ? enqueteData.pergunta
+    : (meta.tema || '');
 
   // 6. Salva no Supabase
   try {
@@ -87,11 +97,11 @@ async function runPostEngine(overrideDate = null) {
       weekNumber,
       isPoll: sentAs === 'ENQUETE',
       companyUsed: meta.company || null,
+      theme: themeSaved,
       telegramResponse: sendResult || null,
     });
     console.log(`[SHARK-BOT] Supabase save: ${saved ? 'OK' : 'FALHOU'}`);
   } catch (err) {
-    // Não joga erro — post já foi enviado
     console.error('[SHARK-BOT] Erro ao salvar no Supabase:', err.message);
   }
 
@@ -114,6 +124,7 @@ async function runPostEngine(overrideDate = null) {
     tema: meta.tema || '',
     company: meta.company || null,
     recentCompaniesUsed: recentCompanies,
+    recentThemesUsed: recentThemes,
     preview: conteudoFinal.slice(0, 100),
   };
 }
