@@ -16,15 +16,15 @@ function getHeaders() {
 }
 
 /**
- * Busca as empresas usadas nos últimos 7 dias.
- * Retorna array de strings, ex: ["Ring", "Bombas", "Scrub Daddy"]
+ * Busca empresas usadas e temas usados nos últimos 7 dias.
+ * Retorna { companies: string[], themes: string[] }
  */
-async function getRecentCompanies() {
+async function getRecentContext() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const isoDate = sevenDaysAgo.toISOString();
 
-  const url = `${SUPABASE_URL}/rest/v1/post_logs?select=company_used&posted_at=gte.${isoDate}&company_used=not.is.null&company_used=neq.`;
+  const url = `${SUPABASE_URL}/rest/v1/post_logs?select=company_used,theme&posted_at=gte.${encodeURIComponent(isoDate)}`;
 
   const response = await fetch(url, {
     method: 'GET',
@@ -33,20 +33,21 @@ async function getRecentCompanies() {
 
   if (!response.ok) {
     const err = await response.text();
-    console.warn(`[SHARK-BOT] Supabase getRecentCompanies error ${response.status}: ${err}`);
-    return []; // Falha silenciosa — melhor gerar sem histórico do que travar tudo
+    console.warn(`[SHARK-BOT] Supabase getRecentContext error ${response.status}: ${err}`);
+    return { companies: [], themes: [] };
   }
 
   const rows = await response.json();
 
-  // Filtra nulos/vazios e deduplica
   const companies = [...new Set(
-    rows
-      .map((r) => r.company_used)
-      .filter((c) => c && c.trim() !== '')
+    rows.map((r) => r.company_used).filter((c) => c && c.trim() !== '')
   )];
 
-  return companies;
+  const themes = [...new Set(
+    rows.map((r) => r.theme).filter((t) => t && t.trim() !== '')
+  )];
+
+  return { companies, themes };
 }
 
 /**
@@ -60,6 +61,7 @@ async function savePostLog({
   weekNumber,
   isPoll,
   companyUsed,
+  theme,
   telegramResponse,
 }) {
   const url = `${SUPABASE_URL}/rest/v1/post_logs`;
@@ -72,6 +74,7 @@ async function savePostLog({
     week_number: weekNumber,
     is_poll: isPoll,
     company_used: companyUsed || null,
+    theme: theme || null,
     telegram_response: telegramResponse || null,
     posted_at: new Date().toISOString(),
   };
@@ -84,7 +87,6 @@ async function savePostLog({
 
   if (!response.ok) {
     const err = await response.text();
-    // Log do erro mas não joga exceção — o post já foi enviado, não pode reverter
     console.error(`[SHARK-BOT] Supabase savePostLog error ${response.status}: ${err}`);
     return false;
   }
@@ -92,4 +94,4 @@ async function savePostLog({
   return true;
 }
 
-module.exports = { getRecentCompanies, savePostLog };
+module.exports = { getRecentContext, savePostLog };
